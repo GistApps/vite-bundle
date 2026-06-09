@@ -5,6 +5,7 @@ namespace Pentatrion\ViteBundle\Controller;
 use Pentatrion\ViteBundle\Service\EntrypointsLookup;
 use Pentatrion\ViteBundle\Service\EntrypointsLookupCollection;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ViteController
@@ -45,7 +46,7 @@ class ViteController
         $viteDevServer = $entrypointsLookup->getViteServer();
 
         if (is_null($viteDevServer)) {
-            throw new \Exception('Vite dev server not available');
+            throw new NotFoundHttpException('Vite dev server is not running. Remove the vite proxy route import from your routes config when not using the Vite dev server.');
         }
 
         return $viteDevServer;

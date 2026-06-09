@@ -30,6 +30,7 @@ class EntrypointsLookup
      */
     private function getFileContent(): array
     {
+        
         if (is_null($this->fileContent)) {
             $this->fileContent = $this->fileAccessor->getData($this->configName, FileAccessor::ENTRYPOINTS);
 

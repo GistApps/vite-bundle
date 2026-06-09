@@ -1,8 +1,17 @@
-when@dev:
-    _pentatrion_vite:
-        prefix: /build
-        resource: "@PentatrionViteBundle/Resources/config/routing.yaml"
+# The vite dev proxy route allows Symfony to forward /{path} requests to the
+# Vite dev server. This is ONLY needed when you cannot access the Vite dev
+# server directly (e.g. inside Docker). When assets are pre-built, your web
+# server (nginx/caddy/apache) must serve the build directory as static files
+# and this route MUST NOT be imported — otherwise every asset request hits PHP.
+#
+# Uncomment the block below only when using the Vite dev server proxy:
+#
+# when@dev:
+#     _pentatrion_vite:
+#         prefix: /build
+#         resource: "@PentatrionViteBundle/Resources/config/routing.yaml"
 
+when@dev:
     _profiler_vite:
         path: /_profiler/vite
         defaults:

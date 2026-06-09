@@ -17,11 +17,13 @@ use Symfony\Component\WebLink\EventListener\AddLinkHeaderListener;
  * @phpstan-type BundleConfig array{
  *  public_directory: string,
  *  build_directory: string,
+ *  manifest_prefix_url: null|string,
  *  proxy_origin: null|string,
  *  absolute_url: bool,
  *  throw_on_missing_entry: bool,
  *  throw_on_missing_asset: bool,
  *  cache: bool,
+ *  cache_refresh_token: null|string,
  *  preload: "none"|"link-tag"|"link-header",
  *  crossorigin: false|true|"anonymous"|"use-credentials",
  *  script_attributes: array<string, bool|string|null>,
@@ -34,12 +36,14 @@ use Symfony\Component\WebLink\EventListener\AddLinkHeaderListener;
  * }
  * @phpstan-type ExtraConfig array{
  *  build_directory: string,
+ *  manifest_prefix_url: null|string,
  *  script_attributes: array<string, bool|string|null>,
  *  link_attributes: array<string, bool|string|null>,
  *  preload_attributes: array<string, bool|string|null>
  * }
  * @phpstan-type ResolvedConfig array{
  *  base: string,
+ *  manifest_prefix_url: null|string,
  *  script_attributes: array<string, bool|string|null>,
  *  link_attributes: array<string, bool|string|null>,
  *  preload_attributes: array<string, bool|string|null>
@@ -81,6 +85,7 @@ class PentatrionViteExtension extends Extension
         $container->setParameter('pentatrion_vite.throw_on_missing_entry', $bundleConfig['throw_on_missing_entry']);
         $container->setParameter('pentatrion_vite.throw_on_missing_asset', $bundleConfig['throw_on_missing_asset']);
         $container->setParameter('pentatrion_vite.crossorigin', $bundleConfig['crossorigin']);
+        $container->setParameter('pentatrion_vite.cache_refresh_token', $bundleConfig['cache_refresh_token']);
 
         if (
             count($bundleConfig['configs']) > 0) {
@@ -214,6 +219,7 @@ class PentatrionViteExtension extends Extension
 
         return [
             'base' => $base,
+            'manifest_prefix_url' => $config['manifest_prefix_url'] ?? null,
             'script_attributes' => $config['script_attributes'],
             'link_attributes' => $config['link_attributes'],
             'preload_attributes' => $config['preload_attributes'],

@@ -68,6 +68,13 @@ services:
             - "@pentatrion_vite.debug"
             - "@twig"
 
+    Pentatrion\ViteBundle\Controller\CacheRefreshController:
+        tags: ["controller.service_arguments"]
+        arguments:
+            - "%pentatrion_vite.configs%"
+            - "%pentatrion_vite.cache_refresh_token%"
+            - "@?pentatrion_vite.cache"
+
     Pentatrion\ViteBundle\Asset\ViteAssetVersionStrategy:
         arguments:
             - "@pentatrion_vite.file_accessor"

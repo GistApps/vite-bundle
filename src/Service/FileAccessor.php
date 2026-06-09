@@ -60,6 +60,11 @@ class FileAccessor
 
     public function hasFile(string $configName, string $fileType): bool
     {
+        if (!empty($this->configs[$configName]['manifest_prefix_url'])) {
+            // For remote URLs we assume the file is present; getData() will throw on failure.
+            return true;
+        }
+
         $basePath = $this->publicPath.$this->configs[$configName]['base'];
 
         return file_exists($basePath.'.vite/'.self::FILES[$fileType]) || file_exists($basePath.self::FILES[$fileType]);
@@ -73,40 +78,56 @@ class FileAccessor
     public function getData(string $configName, string $fileType): array
     {
         $cacheItem = null;
+        
         if (!isset($this->content[$configName][$fileType])) {
             if ($this->cache) {
                 $cacheItem = $this->cache->getItem("$configName.$fileType");
-
+                
                 if ($cacheItem->isHit()) {
                     /** @var EntryPointsFile|ManifestFile $data */
                     $data = $cacheItem->get();
                     $this->content[$configName][$fileType] = $data;
+                    
                 }
             }
 
             if (!isset($this->content[$configName][$fileType])) {
-                $filePath = $this->publicPath.$this->configs[$configName]['base'].self::FILES[$fileType];
-                $basePath = $this->publicPath.$this->configs[$configName]['base'];
+                $manifestPrefixUrl = $this->configs[$configName]['manifest_prefix_url'] ?? null;
 
-                if (($scheme = parse_url($filePath, \PHP_URL_SCHEME)) && str_starts_with($scheme, 'http')) {
-                    throw new \Exception('You can\'t use a remote manifest with pentatrion/vite-bundle');
-                }
-
-                if (file_exists($basePath.'.vite/'.self::FILES[$fileType])) {
-                    $filePath = $basePath.'.vite/'.self::FILES[$fileType];
-                } elseif (file_exists($basePath.self::FILES[$fileType])) {
-                    $filePath = $basePath.self::FILES[$fileType];
+                if (!empty($manifestPrefixUrl)) {
+                    $filePath = rtrim($manifestPrefixUrl, '/').'/'.self::FILES[$fileType];
+                    $context = stream_context_create([
+                        'http' => ['timeout' => 10],
+                        'https' => ['timeout' => 10],
+                    ]);
+                    $result = @file_get_contents($filePath, false, $context);
+                    
+                    if (false === $result) {
+                        throw new EntrypointsFileNotFoundException("$fileType not found at $filePath. Check your manifest_prefix_url configuration.");
+                    }
+                    /** @var EntryPointsFile|ManifestFile $content */
+                    $content = json_decode($result, true, 512, \JSON_THROW_ON_ERROR);
                 } else {
-                    throw new EntrypointsFileNotFoundException("$fileType not found at $basePath. Did you forget configure your `build_directory` in pentatrion_vite.yml");
-                }
+                    $filePath = $this->publicPath.$this->configs[$configName]['base'].self::FILES[$fileType];
+                    $basePath = $this->publicPath.$this->configs[$configName]['base'];
 
-                /** @var EntryPointsFile|ManifestFile $content */
-                $content = json_decode((string) file_get_contents($filePath), true, flags: \JSON_THROW_ON_ERROR);
+                    if (file_exists($basePath.'.vite/'.self::FILES[$fileType])) {
+                        $filePath = $basePath.'.vite/'.self::FILES[$fileType];
+                    } elseif (file_exists($basePath.self::FILES[$fileType])) {
+                        $filePath = $basePath.self::FILES[$fileType];
+                    } else {
+                        throw new EntrypointsFileNotFoundException("$fileType not found at $basePath. Did you forget configure your `build_directory` in pentatrion_vite.yml");
+                    }
+
+                    /** @var EntryPointsFile|ManifestFile $content */
+                    $content = json_decode((string) file_get_contents($filePath), true, flags: \JSON_THROW_ON_ERROR);
+                }
 
                 if (self::ENTRYPOINTS === $fileType) {
                     /** @var EntryPointsFile $content */
                     $pluginVersion = $content['version'];
                     // VERSION[1] => Major version number
+                    
                     if (PentatrionViteBundle::VERSION[1] !== $pluginVersion[1]) {
                         throw new VersionMismatchException('your vite-plugin-symfony is outdated, run : npm install vite-plugin-symfony@^'.PentatrionViteBundle::VERSION[1]);
                     }
