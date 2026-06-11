@@ -118,7 +118,7 @@ class EntrypointRenderer implements ResetInterface
         $configName = $configName ?? $this->defaultConfigName;
         $entrypointsLookup = $this->getEntrypointsLookup($configName);
         $tagRenderer = $this->getTagRenderer($configName);
-        // dump($entrypointsLookup->hasFile());
+
         if (!$entrypointsLookup->hasFile()) {
             return $toString ? '' : [];
         }
@@ -129,7 +129,7 @@ class EntrypointRenderer implements ResetInterface
         $viteServer = $entrypointsLookup->getViteServer();
         $isBuild = $entrypointsLookup->isBuild();
         $base = $entrypointsLookup->getBase();
-        // dump($base);
+
         if (!is_null($viteServer)) {
             // vite server is active
             if (!isset($this->returnedViteClients[$configName])) {

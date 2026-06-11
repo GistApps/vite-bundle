@@ -22,6 +22,7 @@ class CacheRefreshController
 
     public function refresh(Request $request): JsonResponse
     {
+
         if (null === $this->cacheRefreshToken) {
             return new JsonResponse(['error' => 'Cache refresh is not configured. Set cache_refresh_token in pentatrion_vite.yaml.'], Response::HTTP_NOT_FOUND);
         }

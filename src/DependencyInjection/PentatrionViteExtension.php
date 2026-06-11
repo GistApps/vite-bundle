@@ -23,6 +23,7 @@ use Symfony\Component\WebLink\EventListener\AddLinkHeaderListener;
  *  throw_on_missing_entry: bool,
  *  throw_on_missing_asset: bool,
  *  cache: bool,
+ *  cache_pool: null|string,
  *  cache_refresh_token: null|string,
  *  preload: "none"|"link-tag"|"link-header",
  *  crossorigin: false|true|"anonymous"|"use-credentials",
@@ -157,6 +158,12 @@ class PentatrionViteExtension extends Extension
             ->addArgument($defaultConfigName);
 
         if ($bundleConfig['cache']) {
+            if (!empty($bundleConfig['cache_pool'])) {
+                $container->getDefinition('pentatrion_vite.cache')
+                    ->setFactory(null)
+                    ->setClass('Symfony\Component\Cache\Adapter\ProxyAdapter')
+                    ->setArguments([new Reference($bundleConfig['cache_pool'])]);
+            }
             $container->getDefinition('pentatrion_vite.file_accessor')
                 ->replaceArgument(2, new Reference('pentatrion_vite.cache'));
         }
