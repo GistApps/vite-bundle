@@ -6,6 +6,7 @@ use Pentatrion\ViteBundle\Exception\EntrypointsFileNotFoundException;
 use Pentatrion\ViteBundle\Exception\VersionMismatchException;
 use Pentatrion\ViteBundle\PentatrionViteBundle;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * @phpstan-type EntryPoint array{
@@ -54,6 +55,7 @@ class FileAccessor
     public function __construct(
         private string $publicPath,
         private array $configs,
+        private LoggerInterface $logger,
         private ?CacheItemPoolInterface $cache = null,
     ) {
     }
@@ -79,21 +81,46 @@ class FileAccessor
     {
         $cacheItem = null;
         
+        $this->logger->debug('ViteBundle FileAccessor: retrieving data for config "{config}" and file type "{fileType}"', [
+            'config' => $configName,
+            'fileType' => $fileType,
+        ]);
         if (!isset($this->content[$configName][$fileType])) {
+
+            $this->logger->debug('ViteBundle FileAccessor: "$this->content[$configName][$fileType]" is not set', [
+                'key' => "$configName.$fileType",
+            ]);
+
             if ($this->cache) {
-                $cacheItem = $this->cache->getItem("$configName.$fileType");
+                $this->logger->debug('ViteBundle FileAccessor: cache is enabled, checking for key "{key}"', [
+                    'key' => "$configName.$fileType",
+                ]);
+                $cacheKey = "$configName.$fileType";
+                $cacheItem = $this->cache->getItem($cacheKey);
                 
                 if ($cacheItem->isHit()) {
                     /** @var EntryPointsFile|ManifestFile $data */
                     $data = $cacheItem->get();
+                    $firstEntry = is_array($data) ? array_slice($data, 0, 1, true) : [];
+                    $this->logger->debug('ViteBundle FileAccessor: cache HIT for key "{key}" (first entry: {first})', [
+                        'key' => $cacheKey,
+                        'first' => json_encode($firstEntry, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE),
+                    ]);
                     $this->content[$configName][$fileType] = $data;
-                    
+                } else {
+                    $this->logger->debug('ViteBundle FileAccessor: cache MISS for key "{key}"', [
+                        'key' => $cacheKey,
+                    ]);
                 }
+            } else {
+                $this->logger->debug('ViteBundle FileAccessor: cache is disabled');
             }
 
             if (!isset($this->content[$configName][$fileType])) {
                 $manifestPrefixUrl = $this->configs[$configName]['manifest_prefix_url'] ?? null;
-
+                $this->logger->debug('ViteBundle FileAccessor: "$this->content[$configName][$fileType]" is still not set, retrieving from file', [
+                    'key' => "$configName.$fileType",
+                ]);
                 if (!empty($manifestPrefixUrl)) {
                     $filePath = rtrim($manifestPrefixUrl, '/').'/'.self::FILES[$fileType];
                     $context = stream_context_create([
@@ -103,6 +130,10 @@ class FileAccessor
                     $result = @file_get_contents($filePath, false, $context);
                     
                     if (false === $result) {
+                        $this->logger->error('ViteBundle FileAccessor: "$this->content[$configName][$fileType]" could not be retrieved from file', [
+                            'key' => "$configName.$fileType",
+                            'filePath' => $filePath,
+                        ]);
                         throw new EntrypointsFileNotFoundException("$fileType not found at $filePath. Check your manifest_prefix_url configuration.");
                     }
                     /** @var EntryPointsFile|ManifestFile $content */
@@ -111,6 +142,10 @@ class FileAccessor
                     $filePath = $this->publicPath.$this->configs[$configName]['base'].self::FILES[$fileType];
                     $basePath = $this->publicPath.$this->configs[$configName]['base'];
 
+                    $this->logger->debug('ViteBundle FileAccessor: "$this->content[$configName][$fileType]" is still not set, retrieving from local file', [
+                        'key' => "$configName.$fileType",
+                        'filePath' => $filePath,
+                    ]);
                     if (file_exists($basePath.'.vite/'.self::FILES[$fileType])) {
                         $filePath = $basePath.'.vite/'.self::FILES[$fileType];
                     } elseif (file_exists($basePath.self::FILES[$fileType])) {
@@ -135,10 +170,22 @@ class FileAccessor
 
                 if ($this->cache && null !== $cacheItem) {
                     $this->cache->save($cacheItem->set($content));
+                    $this->logger->debug('ViteBundle FileAccessor: cache item saved for key "{key}"', [
+                        'key' => "$configName.$fileType",
+                    ]);
                 }
+
+                $this->logger->debug('ViteBundle FileAccessor: "$this->content[$configName][$fileType]" is now set', [
+                    'key' => "$configName.$fileType",
+                ]);
 
                 $this->content[$configName][$fileType] = $content;
             }
+        } else {
+            $this->logger->debug('ViteBundle FileAccessor: cache HIT for key "{key}"', [
+                'key' => "$configName.$fileType",
+                'value' => json_encode(array_slice($this->content[$configName][$fileType], 0, 1, true), \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE),
+            ]);
         }
 
         return $this->content[$configName][$fileType];

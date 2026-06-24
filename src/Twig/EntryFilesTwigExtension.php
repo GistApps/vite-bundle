@@ -5,6 +5,7 @@ namespace Pentatrion\ViteBundle\Twig;
 use Pentatrion\ViteBundle\Service\EntrypointRenderer;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
+use Psr\Log\LoggerInterface;
 
 /**
  * @phpstan-type ViteEntryScriptTagsOptions array{
@@ -20,8 +21,10 @@ use Twig\TwigFunction;
  */
 class EntryFilesTwigExtension extends AbstractExtension
 {
-    public function __construct(private EntrypointRenderer $entrypointRenderer)
-    {
+    public function __construct(
+        private EntrypointRenderer $entrypointRenderer,
+        private LoggerInterface $logger
+    ) {
     }
 
     public function getFunctions(): array
@@ -43,6 +46,10 @@ class EntryFilesTwigExtension extends AbstractExtension
      */
     public function renderViteScriptTags(string $entryName, array $options = [], ?string $configName = null): string
     {
+        $this->logger->info('ViteBundle Twig Extension: renderViteScriptTags for entry {entryName} with options {options}', [
+            'entryName' => $entryName,
+            'options' => $options,
+        ]);
         return $this->entrypointRenderer->renderScripts($entryName, $options, $configName);
     }
 
@@ -51,6 +58,10 @@ class EntryFilesTwigExtension extends AbstractExtension
      */
     public function renderViteLinkTags(string $entryName, array $options = [], ?string $configName = null): string
     {
+        $this->logger->info('ViteBundle Twig Extension: renderViteLinkTags for entry {entryName} with options {options}', [
+            'entryName' => $entryName,
+            'options' => $options,
+        ]);
         return $this->entrypointRenderer->renderLinks($entryName, $options, $configName);
     }
 }

@@ -36,6 +36,7 @@ services:
         tags: ["twig.extension"]
         arguments:
             - "@pentatrion_vite.entrypoint_renderer"
+            - "@logger"
 
     Pentatrion\ViteBundle\DataCollector\ViteCollector:
         tags:
@@ -73,7 +74,8 @@ services:
         arguments:
             - "%pentatrion_vite.configs%"
             - "%pentatrion_vite.cache_refresh_token%"
-            - "@?pentatrion_vite.cache"
+            - "@logger"
+            - "@pentatrion_vite.cache"
 
     Pentatrion\ViteBundle\Asset\ViteAssetVersionStrategy:
         arguments:
@@ -94,14 +96,15 @@ services:
         arguments:
             - "%kernel.project_dir%%pentatrion_vite.public_directory%"
             - "%pentatrion_vite.configs%"
-            - null
+            - "@logger"
+            - "@?pentatrion_vite.cache"
 
     pentatrion_vite.cache:
         class: Symfony\Component\Cache\Adapter\PhpArrayAdapter
         factory: [Symfony\Component\Cache\Adapter\PhpArrayAdapter, create]
         arguments:
             - "%kernel.cache_dir%/pentatrion_vite.cache.php"
-            - "@cache.pentatrion_vite_fallback"
+            - "@pentatrion_vite_fallback"
 
     pentatrion_vite.cache_warmer:
         class: Pentatrion\ViteBundle\CacheWarmer\EntrypointsCacheWarmer
@@ -109,8 +112,5 @@ services:
         arguments:
             - "%kernel.project_dir%%pentatrion_vite.public_directory%"
             - "%pentatrion_vite.configs%"
+            - "@logger"
             - "%kernel.cache_dir%/pentatrion_vite.cache.php"
-
-    cache.pentatrion_vite_fallback:
-        tags: ["cache.pool"]
-        parent: cache.system

@@ -4,25 +4,33 @@ namespace Pentatrion\ViteBundle\Controller;
 
 use Pentatrion\ViteBundle\Service\FileAccessor;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Contracts\Service\Attribute\Required;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class CacheRefreshController
 {
+
     /**
      * @param array<string, array<mixed>> $configs
      */
     public function __construct(
         private array $configs,
-        private ?string $cacheRefreshToken,
-        private ?CacheItemPoolInterface $cache = null,
+        private string $cacheRefreshToken,
+        private LoggerInterface $logger,
+        private CacheItemPoolInterface $cache,
     ) {
     }
 
     public function refresh(Request $request): JsonResponse
     {
 
+        $this->logger->info('ViteBundle CacheRefreshController: received cache refresh request from {ip}', [
+            'ip' => $request->getClientIp(),
+        ]);
+        
         if (null === $this->cacheRefreshToken) {
             return new JsonResponse(['error' => 'Cache refresh is not configured. Set cache_refresh_token in pentatrion_vite.yaml.'], Response::HTTP_NOT_FOUND);
         }
@@ -45,9 +53,16 @@ class CacheRefreshController
             foreach ([FileAccessor::ENTRYPOINTS, FileAccessor::MANIFEST] as $fileType) {
                 $key = "$configName.$fileType";
                 $this->cache->deleteItem($key);
+                $this->logger->info('ViteBundle CacheRefreshController: deleted cache key "{key}"', [
+                    'key' => $key,
+                ]);
                 $deleted[] = $key;
             }
         }
+
+        $this->logger->info('ViteBundle CacheRefreshController: cache cleared, {count} key(s) deleted', [
+            'count' => count($deleted),
+        ]);
 
         return new JsonResponse(['message' => 'Vite manifest cache cleared.', 'keys' => $deleted], Response::HTTP_OK);
     }

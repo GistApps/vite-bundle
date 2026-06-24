@@ -4,6 +4,7 @@ namespace Pentatrion\ViteBundle\CacheWarmer;
 
 use Exception;
 use Pentatrion\ViteBundle\Service\FileAccessor;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\CacheWarmer\AbstractPhpFileCacheWarmer;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -15,6 +16,7 @@ class EntrypointsCacheWarmer extends AbstractPhpFileCacheWarmer
     public function __construct(
         private string $publicPath,
         private array $configs,
+        private LoggerInterface $logger,
         string $phpCacheFile)
     {
         parent::__construct($phpCacheFile);
@@ -22,7 +24,7 @@ class EntrypointsCacheWarmer extends AbstractPhpFileCacheWarmer
 
     protected function doWarmUp(string $cacheDir, ArrayAdapter $arrayAdapter, ?string $buildDir = null): bool
     {
-        $fileAccessor = new FileAccessor($this->publicPath, $this->configs, $arrayAdapter);
+        $fileAccessor = new FileAccessor($this->publicPath, $this->configs, $this->logger, $arrayAdapter);
 
         foreach ($this->configs as $configName => $config) {
             try {

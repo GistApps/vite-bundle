@@ -3,6 +3,8 @@
 namespace Pentatrion\ViteBundle\Service;
 
 use Pentatrion\ViteBundle\Exception\EntrypointNotFoundException;
+use Psr\Log\LoggerInterface;
+use Symfony\Contracts\Service\Attribute\Required;
 
 /**
  * @phpstan-import-type EntryPointsFile from FileAccessor
@@ -18,6 +20,19 @@ class EntrypointsLookup
         // for cache to retrieve content : configName is cache key
         private bool $throwOnMissingEntry = false,
     ) {
+    }
+
+    #[Required]
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+        if (null !== $this->cache) {
+            $this->logger->debug('ViteBundle FileAccessor: using cache adapter {class}', [
+                'class' => get_class($this->cache),
+            ]);
+        } else {
+            $this->logger->debug('ViteBundle FileAccessor: cache is disabled');
+        }
     }
 
     public function hasFile(): bool
