@@ -7,7 +7,6 @@
         "vite",
         "vitejs"
     ],
-    "version": "9.0.2",
     "type": "symfony-bundle",
     "license": "MIT",
     "authors": [
