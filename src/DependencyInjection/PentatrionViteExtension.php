@@ -165,7 +165,7 @@ class PentatrionViteExtension extends Extension
                     ->setArguments([new Reference($bundleConfig['cache_pool'])]);
             }
             $container->getDefinition('pentatrion_vite.file_accessor')
-                ->replaceArgument(2, new Reference('pentatrion_vite.cache'));
+                ->replaceArgument(3, new Reference('pentatrion_vite.cache'));
         }
     }
 
